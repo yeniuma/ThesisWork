@@ -1,3 +1,5 @@
-tokens.json
-.RData
+*.json
+*.RData
 .Rhistory
+*.csv
+szakdoga_dokumentacio.docx

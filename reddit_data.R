@@ -21,9 +21,10 @@ require(dplyr)
 require(tidyverse)
 require(rjson)
 require(tibble)
+require(jsonlite)
 
-before_time <- 1586188861 #legutóbb: 1585756861
-after_time <- 1586102461 #legutóbb: 1585580461
+before_time <- 	1616127760
+after_time <- 	1616023760
 reddit_tb <- tibble(
   author = character(),
   title = character(),
@@ -43,10 +44,11 @@ scraping_function <- function(b_time, a_time, until, df) {
           after = a_time,
           before = b_time,
           title = "bitcoin",
-          subreddit = "CryptoCurrency",
+          subreddit = "Cryptocurrencies",
           nest_level = 1)
       df <- bind_rows(df, append_tb)
-      write.table(append_tb,file = 'reddit_CurrencyCurrency_btc.csv',append = TRUE,sep = ',',col.names = FALSE,
+      print(df)
+      write.table(append_tb,file = 'reddit_cryptocurrencies_bitcoin.csv',append = TRUE,sep = ',', col.names = FALSE,
         row.names = FALSE)
       cat("Looping.. Currently" , nrow(df) , "rows..\n")
       cat("Variables currently:\n before_time:",b_time,"after_time:",a_time,"\n")
@@ -54,7 +56,4 @@ scraping_function <- function(b_time, a_time, until, df) {
       b_time <- b_time + 86400
       Sys.sleep(2)})}}
 
-scraping_function(before_time, after_time, 1625003999, reddit_tb)
-
-
-
+scraping_function(before_time, after_time, 1648743744, reddit_tb)
