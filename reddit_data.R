@@ -57,3 +57,5 @@ scraping_function <- function(b_time, a_time, until, df) {
       Sys.sleep(2)})}}
 
 scraping_function(before_time, after_time, 1648743744, reddit_tb)
+
+#//TODO --> elkülöníteni subreddit változót + fájlnév változót + jelezni, hogy több subredditrol kértem le adatokat

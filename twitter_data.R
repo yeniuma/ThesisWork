@@ -45,7 +45,7 @@ btc_tweets <- get_all_tweets(
   query=btc_query,
   start_tweets="2019-01-01T00:00:00Z",
   end_tweets="2022-03-30T23:59:59Z",
-  data_path="twitter_adatok_btc/",
+  data_path="twitter_adatok_btc_retry/",
   bind_tweets=FALSE,
   n=Inf,
   bearer_token=get_bearer(),
