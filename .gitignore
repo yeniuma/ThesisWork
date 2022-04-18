@@ -2,5 +2,8 @@
 *.RData
 .Rhistory
 *.csv
+*.xlsx
 szakdoga_dokumentacio.docx
 twitter_adatok_btc_retry
+test
+twitter_adatok_eth
