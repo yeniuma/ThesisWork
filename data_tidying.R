@@ -87,7 +87,7 @@ btc_data_aggr <- clean_btc_data %>%
                    list(count=6, label="6M", step="month", stepmode="backward"),
                    list(count=1, label="1Y", step="year", stepmode="backward"),
                    list(count=1, label="YTD", step="year", stepmode="todate"),
-                   list(step="ALL")
+                   list(step="all", label = "ALL")
                  )),
                list(dtick = "M1", tickformat="%b\n%Y",
                     ticklabelmode="period")),
