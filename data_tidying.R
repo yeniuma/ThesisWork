@@ -67,37 +67,46 @@ btc_data_aggr <- clean_btc_data %>%
   mutate(year = year(created_at), month = month(created_at), day = day(created_at)) %>%
   mutate(created_at = make_date(year, month,day)) %>%
   dplyr::group_by(created_at) %>%
-  dplyr::summarize(daily_avg_sent = mean(ave_sentiment)) %>%
-  plot_ly(x = ~created_at, y = ~daily_avg_sent, type= 'scatter', mode = 'lines', line = list(color = 'rgb(167, 112, 230)')
-            , height = 500) %>%
-  layout(title = "Average sentiment on Bitcoin from 2019 to 2022",
-  paper_bgcolor='rgb(255, 255, 255)', plot_bgcolor='rgb(186, 186, 186)',
-  xaxis = list(title = 'Date', range = list("2019-01-01 00:00:00", "2019-12-31 23:59:59"), rangeslider = list(type = "date", visible = T),
-               list(dtickrange=list(NULL, 1000), value="%H:%M:%S.%L ms"),
-               list(dtickrange=list(1000, 60000), value="%H:%M:%S s"),
-               list(dtickrange=list(60000, 3600000), value="%H:%M m"),
-               list(dtickrange=list(3600000, 86400000), value="%H:%M h"),
-               list(dtickrange=list(86400000, 604800000), value="%e. %b d"),
-               list(dtickrange=list(604800000, "M1"), value="%e. %b w"),
-               list(dtickrange=list("M1", "M12"), value="%b '%y M"),
-               list(dtickrange=list("M12", NULL), value="%Y Y"),
-               rangeselector=list(
-                 buttons=list(
-                   list(count=1, label="1M", step="month", stepmode="backward"),
-                   list(count=6, label="6M", step="month", stepmode="backward"),
-                   list(count=1, label="1Y", step="year", stepmode="backward"),
-                   list(count=1, label="YTD", step="year", stepmode="todate"),
-                   list(step="all", label = "ALL")
-                 )),
-               list(dtick = "M1", tickformat="%b\n%Y",
-                    ticklabelmode="period")),
-  yaxis = list(title = "Average sentiment",
-               gridcolor = 'rgb(255,255,255)',
-               showgrid = TRUE,
-               showline = FALSE,
-               showticklabels = TRUE,
-               tickcolor = 'rgb(140, 140, 140)',
-               ticks = 'outside',
-               zeroline = FALSE))
+  dplyr::summarize(daily_avg_sent = mean(ave_sentiment))
 
-btc_data_aggr
+btc_sent_plot <- plot_ly(x = ~created_at, y = ~daily_avg_sent, type= 'scatter', mode = 'lines', line = list(color = 'rgb(167, 112, 230)')
+                 , height = 500) %>%
+                 layout(title = "Average sentiment on Bitcoin from 2019 to 2022",
+                 paper_bgcolor='rgb(255, 255, 255)', plot_bgcolor='rgb(186, 186, 186)',
+                 xaxis = list(title = 'Date', range = list("2019-01-01 00:00:00", "2019-12-31 23:59:59"), rangeslider = list(type = "date", visible = T),
+                    list(dtickrange=list(NULL, 1000), value="%H:%M:%S.%L ms"),
+                    list(dtickrange=list(1000, 60000), value="%H:%M:%S s"),
+                    list(dtickrange=list(60000, 3600000), value="%H:%M m"),
+                    list(dtickrange=list(3600000, 86400000), value="%H:%M h"),
+                    list(dtickrange=list(86400000, 604800000), value="%e. %b d"),
+                    list(dtickrange=list(604800000, "M1"), value="%e. %b w"),
+                    list(dtickrange=list("M1", "M12"), value="%b '%y M"),
+                    list(dtickrange=list("M12", NULL), value="%Y Y"),
+                    rangeselector=list(
+                       buttons=list(
+                        list(count=1, label="1M", step="month", stepmode="backward"),
+                        list(count=6, label="6M", step="month", stepmode="backward"),
+                        list(count=1, label="1Y", step="year", stepmode="backward"),
+                        list(count=1, label="YTD", step="year", stepmode="todate"),
+                        list(step="all", label = "ALL")
+                 )),
+                    list(dtick = "M1", tickformat="%b\n%Y",
+                         ticklabelmode="period")),
+                 yaxis = list(title = "Average sentiment",
+                             gridcolor = 'rgb(255,255,255)',
+                             showgrid = TRUE,
+                             showline = FALSE,
+                             showticklabels = TRUE,
+                             tickcolor = 'rgb(140, 140, 140)',
+                             ticks = 'outside',
+                             zeroline = FALSE))
+
+btc_sent_plot
+
+btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/data to be cleaned/coin_Bitcoin.csv") %>%
+                           mutate(Date = as_datetime(Date)) %>%
+                           mutate(year = year(Date), month = month(Date), day = day(Date)) %>%
+                           mutate(Date = make_date(year,month,day)) %>% 
+                           filter(Date >= "2019-01-01" & Date <= "2022-03-30") %>%
+                           inner_join(btc_data_aggr, by = c("Date" = "created_at")) %>% 
+                           select(c(-year,-month,-day,-SNo,-Symbol))
