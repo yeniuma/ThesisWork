@@ -2,12 +2,14 @@
 title: "Plots and graphs for thesis"
 output: html_notebook
 ---
-```{r}
+```{r echo = FALSE}
 library(tidyverse)
 library(writexl)
 library(plyr)
 library(lubridate)
 library(plotly)
+library(dplyr)
+library(corrplot)
 ```
 
 
@@ -23,9 +25,10 @@ btc_exchange_rate_history <- read.csv("D:/Suli/Szakdolgozat1/development_n_stuff
 
 
 btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/coin_Bitcoin.csv") %>%
-                           mutate(Date = as_datetime(Date)) %>%
+                           mutate(Date = as_date(Date)) %>%
                            mutate(year = year(Date), month = month(Date), day = day(Date)) %>%
                            mutate(Date = make_date(year,month,day)) %>% 
+                           mutate(xchange_rate_change = Close - Open) %>%
                            filter(Date >= "2019-01-01" & Date <= "2022-03-30") %>%
                            inner_join(btc_exchange_rate_history, by = c("Date" = "created_at")) %>% 
                            select(c(-year,-month,-day))
@@ -33,9 +36,48 @@ btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/co
 ```
 
 ```{r}
-btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~Close, name ='exchange rate', type = 'scatter', mode = 'lines')
-
-btc_sent_lineplot <- btc_sent_lineplot %>% add_trace(y = ~daily_avg_sent, name = 'avg. sentiment', mode = 'lines') 
+btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xchange_rate_change, name ="BTC 
+                             change", type = 'scatter', mode = 'lines', color = 'red') %>%
+                     add_trace(data = btc_usd_tweets_combined, x = ~Date, y = ~daily_avg_sent, yaxis = "y2", name = 'Avg. sentiment', 
+                               mode ='lines', color = 'blue') %>%
+                     layout(title = "Bitcoin exchange rate change compared to previous day's closing rate",
+                            legend = list(x = 1.2),
+                            paper_bgcolor='rgb(255, 255, 255)', plot_bgcolor='rgb(255, 255, 255)',
+                            xaxis = list(title = 'Date', range = list("2019-01-01 00:00:00", "2019-12-31 23:59:59"), rangeslider =
+                                         list(type = "date", visible = T),
+                                         list(dtickrange=list(NULL, 1000), value="%H:%M:%S.%L ms"),
+                                         list(dtickrange=list(1000, 60000), value="%H:%M:%S s"),
+                                         list(dtickrange=list(60000, 3600000), value="%H:%M m"),
+                                         list(dtickrange=list(3600000, 86400000), value="%H:%M h"),
+                                         list(dtickrange=list(86400000, 604800000), value="%e. %b d"),
+                                         list(dtickrange=list(604800000, "M1"), value="%e. %b w"),
+                                         list(dtickrange=list("M1", "M12"), value="%b '%y M"),
+                                         list(dtickrange=list("M12", NULL), value="%Y Y"),
+                                         rangeselector=list(
+                                           buttons=list(
+                                           list(count=1, label="1M", step="month", stepmode="backward"),
+                                           list(count=6, label="6M", step="month", stepmode="backward"),
+                                           list(count=1, label="1Y", step="year", stepmode="backward"),
+                                           list(count=1, label="YTD", step="year", stepmode="todate"),
+                                           list(step="all", label = "ALL")
+                                           )),
+                                         list(dtick = "M1", tickformat="%b\n%Y",
+                                              ticklabelmode="period")),
+                            yaxis = list(title = "BTC exchange rate change",
+                                         range = c(min(btc_usd_tweets_combined$xchange_rate_change), 
+                                                   max(btc_usd_tweets_combined$xchange_rate_change)),
+                                         gridcolor = 'rgb(255,255,255)',
+                                         showgrid = TRUE,
+                                         showline = FALSE,
+                                         showticklabels = TRUE,
+                                         tickcolor = 'rgb(140, 140, 140)',
+                                         ticks = 'outside',
+                                         zeroline = FALSE),
+                            yaxis2 = list(title = "Daily average sentiment", overlaying = "y", side = "right", range = 
+                                            c(min(btc_usd_tweets_combined$daily_avg_sent), 
+                                              max(btc_usd_tweets_combined$daily_avg_sent)))
+                            )
+                     
 
 btc_sent_lineplot
 ```
@@ -45,10 +87,12 @@ todo: exchange price changehez nézni, nem az árhoz
 
 
 ```{r}
-btc_sent_scatterplot <- plot_ly(data = btc_usd_tweets_combined, y =  ~daily_avg_sent, x = ~Close,
+btc_sent_scatterplot <- plot_ly(data = btc_usd_tweets_combined, y =  ~daily_avg_sent, x = ~xchange_rate_change,
                             marker = list(size = 4,
                              color = 'rgba(255, 182, 193, .9)',
-                             line = list(color = 'rgba(152, 0, 0, .8)', width = 1)))
+                             line = list(color = 'rgba(152, 0, 0, .8)', width = 1))) %>%
+                        layout(yaxis = list(title = "Daily average sentiment"),
+                               xaxis = list(title = "BTC exchange rate change"))
 
 btc_sent_scatterplot
 ```
@@ -56,7 +100,7 @@ btc_sent_scatterplot
 # Third step: calculate covariance and correlation
 
 ```{r}
-btc_cov <- cov(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$Close, method = "spearman")
+btc_cov <- cov(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$xchange_rate_change, method = "pearson")
 
 btc_cov
 
@@ -66,7 +110,7 @@ Correlation helps us analyze the effect of changes made in one variable over the
 Now that we know this, we should calculate the strength of the relationship between two, numerically measured, continuous variables.
 
 ```{r}
-btc_cor <- cor(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$Close, method="spearman")
+btc_cor <- cor(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$xchange_rate_change, method = "pearson")
 
 btc_cor
 ```

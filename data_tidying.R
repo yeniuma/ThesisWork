@@ -72,7 +72,7 @@ btc_data_aggr <- clean_btc_data %>%
 btc_sent_plot <- plot_ly(x = btc_data_aggr$created_at, y = btc_data_aggr$daily_avg_sent, type= 'scatter', mode = 'lines', line = list(color = 'rgb(167, 112, 230)')
                  , height = 500) %>%
                  layout(title = "Average sentiment on Bitcoin from 2019 to 2022",
-                 paper_bgcolor='rgb(255, 255, 255)', plot_bgcolor='rgb(186, 186, 186)',
+                 paper_bgcolor='rgb(255, 255, 255)', plot_bgcolor='rgb(255, 255, 255)',
                  xaxis = list(title = 'Date', range = list("2019-01-01 00:00:00", "2019-12-31 23:59:59"), rangeslider = list(type = "date", visible = T),
                     list(dtickrange=list(NULL, 1000), value="%H:%M:%S.%L ms"),
                     list(dtickrange=list(1000, 60000), value="%H:%M:%S s"),
