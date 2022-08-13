@@ -31,8 +31,8 @@ twitter_data_combining_func <- function(path, output_xlsx){
   return(output_df_name)
 }
 
-btc_tweets <- data_combining_func("twitter_adatok_btc_retry", "all_btc_tweets_test.xlsx")
-eth_tweets <- data_combining_func("twitter_adatok_eth", "all_eth_tweets.xlsx")
+btc_tweets <- twitter_data_combining_func("twitter_adatok_btc_retry", "all_btc_tweets_test.xlsx")
+eth_tweets <- twitter_data_combining_func("twitter_adatok_eth", "all_eth_tweets.xlsx")
 
 reddit_data_combining_func <- function(path){
   reddit_df <- read.csv(file = path) %>% 
@@ -51,11 +51,11 @@ reddit_data_combining_func <- function(path){
   return(output_df)
 }
 
-first_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data to be cleaned/reddit_adat/reddit_tb_btc.csv")
-second_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data to be cleaned/reddit_adat/reddit_binance_bitcoin.csv") 
-third_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data to be cleaned/reddit_adat/reddit_CurrencyCurrency_btc.csv") #empty
-fourth_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data to be cleaned/reddit_adat/reddit_CurrencyCurrency_btc2.csv") #empty
-fifth_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data to be cleaned/reddit_adat/reddit_cryptocurrencies_bitcoin.csv") #empty
+first_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data_to_be_cleaned/reddit_adat/reddit_tb_btc.csv")
+second_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data_to_be_cleaned/reddit_adat/reddit_binance_bitcoin.csv") 
+third_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data_to_be_cleaned/reddit_adat/reddit_CurrencyCurrency_btc.csv") #empty
+fourth_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data_to_be_cleaned/reddit_adat/reddit_CurrencyCurrency_btc2.csv") #empty
+fifth_reddit_df <- reddit_data_combining_func("D:/Suli/szakdolgozat1/data_to_be_cleaned/reddit_adat/reddit_cryptocurrencies_bitcoin.csv") #empty
 
 all_reddit_df <- rbind(first_reddit_df, second_reddit_df)
 
@@ -69,7 +69,7 @@ btc_data_aggr <- clean_btc_data %>%
   dplyr::group_by(created_at) %>%
   dplyr::summarize(daily_avg_sent = mean(ave_sentiment))
 
-btc_sent_plot <- plot_ly(x = ~created_at, y = ~daily_avg_sent, type= 'scatter', mode = 'lines', line = list(color = 'rgb(167, 112, 230)')
+btc_sent_plot <- plot_ly(x = btc_data_aggr$created_at, y = btc_data_aggr$daily_avg_sent, type= 'scatter', mode = 'lines', line = list(color = 'rgb(167, 112, 230)')
                  , height = 500) %>%
                  layout(title = "Average sentiment on Bitcoin from 2019 to 2022",
                  paper_bgcolor='rgb(255, 255, 255)', plot_bgcolor='rgb(186, 186, 186)',
@@ -102,11 +102,3 @@ btc_sent_plot <- plot_ly(x = ~created_at, y = ~daily_avg_sent, type= 'scatter', 
                              zeroline = FALSE))
 
 btc_sent_plot
-
-btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/data to be cleaned/coin_Bitcoin.csv") %>%
-                           mutate(Date = as_datetime(Date)) %>%
-                           mutate(year = year(Date), month = month(Date), day = day(Date)) %>%
-                           mutate(Date = make_date(year,month,day)) %>% 
-                           filter(Date >= "2019-01-01" & Date <= "2022-03-30") %>%
-                           inner_join(btc_data_aggr, by = c("Date" = "created_at")) %>% 
-                           select(c(-year,-month,-day,-SNo,-Symbol))

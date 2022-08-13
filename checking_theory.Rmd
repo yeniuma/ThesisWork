@@ -1,0 +1,74 @@
+---
+title: "Plots and graphs for thesis"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(writexl)
+library(plyr)
+library(lubridate)
+library(plotly)
+```
+
+
+## Exchange rate and sentiment: is there a connection?
+Before we can start with our machine learning model we need to understand the relationship between the two variables, therefore we should calculate covariance. This measures the direction of a relationship between the two variables.
+
+# First step: creating a dataframe from the csv
+```{r}
+btc_exchange_rate_history <- read.csv("D:/Suli/Szakdolgozat1/development_n_stuff/aggregated_data.csv") %>%
+                             select(-X) %>%
+                             mutate(created_at = as_date(created_at))
+
+
+
+btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/coin_Bitcoin.csv") %>%
+                           mutate(Date = as_datetime(Date)) %>%
+                           mutate(year = year(Date), month = month(Date), day = day(Date)) %>%
+                           mutate(Date = make_date(year,month,day)) %>% 
+                           filter(Date >= "2019-01-01" & Date <= "2022-03-30") %>%
+                           inner_join(btc_exchange_rate_history, by = c("Date" = "created_at")) %>% 
+                           select(c(-year,-month,-day))
+
+```
+
+```{r}
+btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~Close, name ='exchange rate', type = 'scatter', mode = 'lines')
+
+btc_sent_lineplot <- btc_sent_lineplot %>% add_trace(y = ~daily_avg_sent, name = 'avg. sentiment', mode = 'lines') 
+
+btc_sent_lineplot
+```
+
+# Second step: plotting the data on a scatterplot
+todo: exchange price changehez nézni, nem az árhoz
+
+
+```{r}
+btc_sent_scatterplot <- plot_ly(data = btc_usd_tweets_combined, y =  ~daily_avg_sent, x = ~Close,
+                            marker = list(size = 4,
+                             color = 'rgba(255, 182, 193, .9)',
+                             line = list(color = 'rgba(152, 0, 0, .8)', width = 1)))
+
+btc_sent_scatterplot
+```
+
+# Third step: calculate covariance and correlation
+
+```{r}
+btc_cov <- cov(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$Close, method = "spearman")
+
+btc_cov
+
+```
+A positive covariance means that the two variables tend to increase or decrease together. 
+Correlation helps us analyze the effect of changes made in one variable over the other variable of the dataset.
+Now that we know this, we should calculate the strength of the relationship between two, numerically measured, continuous variables.
+
+```{r}
+btc_cor <- cor(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$Close, method="spearman")
+
+btc_cor
+```
+
+
