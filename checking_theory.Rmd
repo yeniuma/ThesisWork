@@ -1,8 +1,9 @@
 ---
 title: "Plots and graphs for thesis"
-output: html_notebook
+output: 
+  html_document
 ---
-```{r echo = FALSE}
+```{r, warning=FALSE,message=FALSE}
 library(tidyverse)
 library(writexl)
 library(plyr)
@@ -10,14 +11,15 @@ library(lubridate)
 library(plotly)
 library(dplyr)
 library(corrplot)
+library(formatR)
 ```
 
 
-## Exchange rate and sentiment: is there a connection?
+# Exchange rate and sentiment: is there a connection?
 Before we can start with our machine learning model we need to understand the relationship between the two variables, therefore we should calculate covariance. This measures the direction of a relationship between the two variables.
 
-# First step: creating a dataframe from the csv
-```{r}
+## First step: creating a dataframe from the csv
+```{r, tidy=TRUE}
 btc_exchange_rate_history <- read.csv("D:/Suli/Szakdolgozat1/development_n_stuff/aggregated_data.csv") %>%
                              select(-X) %>%
                              mutate(created_at = as_date(created_at))
@@ -35,9 +37,9 @@ btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/co
 
 ```
 
-```{r}
-btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xchange_rate_change, name ="BTC 
-                             change", type = 'scatter', mode = 'lines', color = 'red') %>%
+```{r, tidy=TRUE, warning=FALSE, fig.width=10, fig.height=8, fig.align='center'}
+btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xchange_rate_change, name ="BTC change", type = 'scatter', 
+                             mode = 'lines', color = 'red') %>%
                      add_trace(data = btc_usd_tweets_combined, x = ~Date, y = ~daily_avg_sent, yaxis = "y2", name = 'Avg. sentiment', 
                                mode ='lines', color = 'blue') %>%
                      layout(title = "Bitcoin exchange rate change compared to previous day's closing rate",
@@ -61,8 +63,7 @@ btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xch
                                            list(count=1, label="YTD", step="year", stepmode="todate"),
                                            list(step="all", label = "ALL")
                                            )),
-                                         list(dtick = "M1", tickformat="%b\n%Y",
-                                              ticklabelmode="period")),
+                                         list(dtick = "M1", tickformat="%b\n%Y", ticklabelmode="period")),
                             yaxis = list(title = "BTC exchange rate change",
                                          range = c(min(btc_usd_tweets_combined$xchange_rate_change), 
                                                    max(btc_usd_tweets_combined$xchange_rate_change)),
@@ -82,11 +83,11 @@ btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xch
 btc_sent_lineplot
 ```
 
-# Second step: plotting the data on a scatterplot
+## Second step: plotting the data on a scatterplot
 todo: exchange price changehez nézni, nem az árhoz
 
 
-```{r}
+```{r, tidy=TRUE, warning=FALSE, message=FALSE,fig.align='center'}
 btc_sent_scatterplot <- plot_ly(data = btc_usd_tweets_combined, y =  ~daily_avg_sent, x = ~xchange_rate_change,
                             marker = list(size = 4,
                              color = 'rgba(255, 182, 193, .9)',
@@ -97,9 +98,9 @@ btc_sent_scatterplot <- plot_ly(data = btc_usd_tweets_combined, y =  ~daily_avg_
 btc_sent_scatterplot
 ```
 
-# Third step: calculate covariance and correlation
+## Third step: calculate covariance and correlation
 
-```{r}
+```{r, tidy=TRUE}
 btc_cov <- cov(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$xchange_rate_change, method = "pearson")
 
 btc_cov
@@ -109,7 +110,7 @@ A positive covariance means that the two variables tend to increase or decrease 
 Correlation helps us analyze the effect of changes made in one variable over the other variable of the dataset.
 Now that we know this, we should calculate the strength of the relationship between two, numerically measured, continuous variables.
 
-```{r}
+```{r, tidy=TRUE}
 btc_cor <- cor(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$xchange_rate_change, method = "pearson")
 
 btc_cor
