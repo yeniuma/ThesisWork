@@ -18,6 +18,7 @@ library(plotly)
 library(dplyr)
 library(corrplot)
 library(formatR)
+library(htmltools)
 ```
 
 ***
@@ -43,15 +44,17 @@ btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/co
 ***
 ## Second step: plotting exchange rate change and average sentiment for further insights, taking a look at distribution
 ```{r, tidy=TRUE, warning=FALSE, fig.width=10, fig.height=8, fig.align='center'}
-btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xchange_rate_change, name ="BTC change", type = 'scatter', 
+btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xchange_rate_change, name ="BTC change", type =
+                               'scatter', 
                              mode = 'lines', color = 'red') %>%
-                     add_trace(data = btc_usd_tweets_combined, x = ~Date, y = ~daily_avg_sent, yaxis = "y2", name = 'Avg. sentiment', 
-                               mode ='lines', color = 'blue') %>%
+                     add_trace(data = btc_usd_tweets_combined, x = ~Date, y = ~daily_avg_sent, yaxis = "y2", 
+                               name = 'Avg. sentiment', mode ='lines', color = 'blue') %>%
                      layout(title = "Bitcoin exchange rate change compared to previous day's closing rate",
                             margin = list(t = 150),
                             legend = list(x = 1.1),
                             paper_bgcolor='rgb(255, 255, 255)', plot_bgcolor='rgb(255, 255, 255)',
-                            xaxis = list(title = 'Date', range = list("2019-01-01 00:00:00", "2019-12-31 23:59:59"), rangeslider =
+                            xaxis = list(title = 'Date', range = list("2019-01-01 00:00:00", "2019-12-31 23:59:59"), 
+                                         rangeslider =
                                          list(type = "date", visible = T),
                                          list(dtickrange=list(NULL, 1000), value="%H:%M:%S.%L ms"),
                                          list(dtickrange=list(1000, 60000), value="%H:%M:%S s"),
@@ -88,12 +91,12 @@ btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xch
 
 btc_sent_lineplot
 ```
-```{r}
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 plot(density(btc_exchange_rate_history$daily_avg_sent), type="n", main = "Distribution of average daily sentiment")
 polygon(density(btc_exchange_rate_history$daily_avg_sent), col="red", border="gray")
 ```
 
-```{r}
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 plot(density(btc_usd_tweets_combined$xchange_rate_change), type="n", main = "Distribution of Bitcoin exchange rate change")
 polygon(density(btc_usd_tweets_combined$xchange_rate_change), col="red", border="gray")
 ```
@@ -109,14 +112,15 @@ btc_sent_scatterplot <- plot_ly(data = btc_usd_tweets_combined, y =  ~daily_avg_
                              color = 'rgba(255, 182, 193, .9)',
                              line = list(color = 'rgba(152, 0, 0, .8)', width = 1))) %>%
                         layout(yaxis = list(title = "Daily average sentiment"),
-                               xaxis = list(title = "BTC exchange rate change"))
+                               xaxis = list(title = "BTC exchange rate change (USD)")) %>%
+                        htmltools::div(align="center" )
 
 btc_sent_scatterplot
 ```
 The plot shows that there is no distinguishable relationship between these variables, but I still wanted to do the covariance and correlation calculation to get the mathematical results.
 
 ***
-## Fourth step: calculate covariance and correlation
+## Fourth step: calculate covariance and correlation of Twitter sentiments and BTC exchange rate
 
 ```{r, tidy=TRUE}
 btc_cov <- cov(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$xchange_rate_change, method = "pearson")
@@ -148,7 +152,7 @@ A weak correlation indicates that there is minimal relationship between the vari
 After reading some scientific papers I concluded that continuing down this path would bear no plausible outcome, so I decided to look at some other trend measures that seem promising.
 
 ***
-## Fifth step: checking out GoogleTrends
+## Fifth step: checking out Google Trends
 
 Downloaded the data for Google search popularity of Bitcoin through Trendecon and Google Trends API.
 Because of the limitations of standard Google Trends data I had to use the Trendecon package's <code>rts_gtrends_mwd</code> function to build a consistent daily time series.
@@ -161,13 +165,12 @@ btc_ggl_trends <- read.csv("btc_google_trends.csv")
 head(btc_ggl_trends)
 ```
 Checking distribution:
-```{r}
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 plot(density(btc_ggl_trends$value), type="n", main = "Distribution of Google Trends data")
 polygon(density(btc_ggl_trends$value), col="red", border="gray")
 ```
 
 ***
-//TODO: FINISH THIS
 
 ## Sixth step: plotting Google Trends and BTC exchange rate change on scatterplot
 
@@ -183,8 +186,43 @@ btc_ggltrnds_scatterplot <- plot_ly(data = btc_usd_ggltrnds_combined, y =  ~Tren
                              color = 'rgba(255, 182, 193, .9)',
                              line = list(color = 'rgba(152, 0, 0, .8)', width = 1))) %>%
                             layout(yaxis = list(title = "Google Trends indicator"),
-                                   xaxis = list(title = "BTC exchange rate change"))
+                                   xaxis = list(title = "BTC exchange rate change (USD)")) %>%
+                            htmltools::div(align="center" )
 
 btc_ggltrnds_scatterplot
 ```
+
+Plotting the absolute values shows the linearity between Google Trends indicator and BTC exchange rate change:
+
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+ggl_trends_abs_scatterplt <- plot_ly(data = btc_usd_ggltrnds_combined ,y =  ~abs(Trends_indicator), x = 
+                                       ~abs(xchange_rate_change),
+                              marker = list(size = 4,
+                             color = 'rgba(255, 182, 193, .9)',
+                             line = list(color = 'rgba(152, 0, 0, .8)', width = 1))) %>%
+                            layout(yaxis = list(title = "Google Trends indicator"),
+                                   xaxis = list(title = "BTC exchange rate change (USD)")) %>%
+                             htmltools::div(align="center" )
+ggl_trends_abs_scatterplt
+```
+
+***
+<!-- TODO: megnézni, hogy lehet tovább ezen finomítani, ugyanis nem abszolút értékes datasetnél gyenge/nem létező a kapcsolat -->
+
+## Seventh step: calculate covariance and correlation of Google Trends and BTC exchange rate
+
+Covariance:
+```{r, tidy=TRUE}
+btc_ggl_cov <- cov(btc_usd_ggltrnds_combined$Trends_indicator,abs(btc_usd_ggltrnds_combined$xchange_rate_change), method = "pearson")
+
+btc_ggl_cov
+
+```
+Correlation:
+```{r, tidy=TRUE}
+btc_ggl_cor <- cor(btc_usd_ggltrnds_combined$Trends_indicator,abs(btc_usd_ggltrnds_combined$xchange_rate_change), method = "pearson")
+
+btc_ggl_cor
+```
+There is a moderate uphill (positive) relationship.
 
