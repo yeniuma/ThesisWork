@@ -30,7 +30,7 @@ btc_exchange_rate_history <- read.csv("D:/Suli/Szakdolgozat1/development_n_stuff
 
 
 
-btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/coin_Bitcoin.csv") %>%
+btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/clean data/Bitcoin_exchage_rates.csv") %>%
                            mutate(Date = as_date(Date)) %>%
                            mutate(year = year(Date), month = month(Date), day = day(Date)) %>%
                            mutate(Date = make_date(year,month,day)) %>% 
@@ -160,7 +160,7 @@ Because of the limitations of standard Google Trends data I had to use the Trend
 > Construct a robust and consistent daily Time Series from Google Trends data. Daily, weekly and monthly Data is downloaded and consistently aggregated, using the Chow-Lin methodology.
 
 ```{r}
-btc_ggl_trends <- read.csv("btc_google_trends.csv")
+btc_ggl_trends <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/btc_google_trends.csv")
 
 head(btc_ggl_trends)
 ```
@@ -175,7 +175,7 @@ polygon(density(btc_ggl_trends$value), col="red", border="gray")
 ## Sixth step: plotting Google Trends and BTC exchange rate change on scatterplot
 
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
-btc_usd_ggltrnds_combined <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/coin_Bitcoin.csv")%>%
+btc_usd_ggltrnds_combined <- read.csv("D:/Suli/Szakdolgozat1/clean data/Bitcoin_exchage_rates.csv")%>%
                              inner_join(btc_ggl_trends, by = c("Date" = "time")) %>%
                              mutate(xchange_rate_change = Close - Open) %>%
                              mutate(value = ifelse(xchange_rate_change < 0, value*-1, 
