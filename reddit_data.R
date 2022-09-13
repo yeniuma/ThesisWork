@@ -1,19 +1,3 @@
-# require(RedditExtractoR)
-# require(pushshiftR)
-# result <- fromJSON(file = "reddit_tokens.json")
-# tokens_df <- as.data.frame(result)
-# 
-# response <- POST("https://www.reddit.com/api/v1/access_token",
-#                  authenticate(tokens_df$app_id, tokens_df$secret),
-#                  user_agent(tokens_df$app_name),
-#                  body = list(grant_type = "password",
-#                              username = tokens_df$reddit_username,
-#                              password = tokens_df$reddit_password))
-# access_token_json <- rawToChar(response$content)
-# access_token_content <- fromJSON(access_token_json)
-#access_token <- access_token_content$access_token 
-
-
 require(devtools)
 require(pushshiftR)
 require(httr)
@@ -23,39 +7,47 @@ require(rjson)
 require(tibble)
 require(jsonlite)
 
-before_time <- 	1616127760
-after_time <- 	1616023760
-reddit_tb <- tibble(
-  author = character(),
-  title = character(),
-  selftext = character(),
-  created_utc = numeric(),
-  id = character(),
-  num_comments = numeric(),
-  score = numeric(),
-  subreddit = character()
-)
+before_time <- 1546905600
+after_time <- 	1546300800
 
-scraping_function <- function(b_time, a_time, until, df) {
+scraping_function <- function(b_time, a_time, until) {
   while (b_time <= until) {
-    try({append_tb <- getPushshiftData(
+    network_issue <- FALSE
+    json_path <- paste("D:/Suli/Szakdolgozat1/data_to_be_cleaned/reddit_adat/bitcoin_sub/bitcoinJson", a_time, "_", b_time,".json", sep = "")
+    tryCatch(
+      {
+        df <- getPushshiftData(
           postType = "submission",
-          size = 700,
+          size = 1000,
           after = a_time,
           before = b_time,
           title = "bitcoin",
-          subreddit = "Cryptocurrencies",
+          subreddit = "Bitcoin",
           nest_level = 1)
-      df <- bind_rows(df, append_tb)
-      print(df)
-      write.table(append_tb,file = 'reddit_cryptocurrencies_bitcoin.csv',append = TRUE,sep = ',', col.names = FALSE,
-        row.names = FALSE)
-      cat("Looping.. Currently" , nrow(df) , "rows..\n")
-      cat("Variables currently:\n before_time:",b_time,"after_time:",a_time,"\n")
-      a_time <- a_time + 86400
-      b_time <- b_time + 86400
-      Sys.sleep(2)})}}
+        cat("Looping.. Currently" , nrow(df) , "rows..\n")
+        cat("Variables currently:\n before_time:",b_time,"after_time:",a_time,"\n")
+        write(toJSON(df),json_path)
+        Sys.sleep(5)
+      },
+      error=function(errmsg) {
+        if(grepl("HTTP", errmsg, fixed = TRUE)) {
+          network_issue <- TRUE
+          message("Here's the original error message:")
+          message(errmsg)
+          Sys.sleep(10)
+        }
+      }
+    )
+    if (!network_issue) {
+      a_time <- a_time + 172800
+      b_time <- b_time + 172800
+    }
+  }
+}
 
-scraping_function(before_time, after_time, 1648743744, reddit_tb)
+scraping_function(before_time, after_time, 1648764000)
 
-#//TODO --> elkülöníteni subreddit változót + fájlnév változót + jelezni, hogy több subredditrol kértem le adatokat
+#json_path <- "myjson.json"
+#myfile <- toJSON(test_tb)
+#write(myfile,json_path)
+#eeee_tb <- as.data.frame(fromJSON(paste(readLines(json_path), collapse="")), flatten=TRUE)

@@ -178,6 +178,8 @@ polygon(density(btc_ggl_trends$value), col="red", border="gray")
 btc_usd_ggltrnds_combined <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/coin_Bitcoin.csv")%>%
                              inner_join(btc_ggl_trends, by = c("Date" = "time")) %>%
                              mutate(xchange_rate_change = Close - Open) %>%
+                             mutate(value = ifelse(xchange_rate_change < 0, value*-1, 
+                                                              value)) %>%
                              select(-X) %>%
                              dplyr::rename(Trends_indicator = value)
 
