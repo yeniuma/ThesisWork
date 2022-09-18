@@ -4,7 +4,7 @@ output:
   html_document:
 #    number_sections: true
 ---
-# Exchange rate and sentiment: is there a connection?
+# Exchange rate and social media: is there a connection?
 Before we can start with our machine learning model we need to understand the relationship between the two variables, therefore we should calculate covariance. This measures the direction of a relationship between the two variables.
 
 ***
@@ -19,6 +19,8 @@ library(dplyr)
 library(corrplot)
 library(formatR)
 library(htmltools)
+library(ggpubr)
+
 ```
 
 ***
@@ -145,7 +147,7 @@ btc_cor
 > * 0 indicates no linear correlation between two variables
 > * 1 indicates a perfectly positive linear correlation between two variables
 >
->Often denoted as r, this number helps us understand the strength of the relationship between two variables. The closer r is to zero, the weaker the relationship between the two variables.
+> Often denoted as r, this number helps us understand the strength of the relationship between two variables. The closer r is to zero, the weaker the relationship between the two variables.
 
 A weak correlation indicates that there is minimal relationship between the variables.
 
@@ -189,7 +191,7 @@ btc_ggltrnds_scatterplot <- plot_ly(data = btc_usd_ggltrnds_combined, y =  ~Tren
                              line = list(color = 'rgba(152, 0, 0, .8)', width = 1))) %>%
                             layout(yaxis = list(title = "Google Trends indicator"),
                                    xaxis = list(title = "BTC exchange rate change (USD)")) %>%
-                            htmltools::div(align="center" )
+                            htmltools::div(align="center")
 
 btc_ggltrnds_scatterplot
 ```
@@ -197,16 +199,30 @@ btc_ggltrnds_scatterplot
 Plotting the absolute values shows the linearity between Google Trends indicator and BTC exchange rate change:
 
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+
 ggl_trends_abs_scatterplt <- plot_ly(data = btc_usd_ggltrnds_combined ,y =  ~abs(Trends_indicator), x = 
                                        ~abs(xchange_rate_change),
-                              marker = list(size = 4,
+                             marker = list(size = 4,
                              color = 'rgba(255, 182, 193, .9)',
                              line = list(color = 'rgba(152, 0, 0, .8)', width = 1))) %>%
                             layout(yaxis = list(title = "Google Trends indicator"),
                                    xaxis = list(title = "BTC exchange rate change (USD)")) %>%
-                             htmltools::div(align="center" )
+                            htmltools::div(align="center" )
 ggl_trends_abs_scatterplt
+
 ```
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+ggscatter(btc_usd_ggltrnds_combined, x = "xchange_rate_change", y = "Trends_indicator", 
+          add = "reg.line", conf.int = TRUE, 
+          cor.coef = TRUE, cor.method = "pearson",
+          xlab = "BTC exchange rate change (USD)", ylab = "Google Trends indicator")
+```
+
+> When you perform a statistical test a p-value helps you determine the significance of your results in relation to the null hypothesis.
+> A p-value less than 0.05 (typically ≤ 0.05) is statistically significant. It indicates strong evidence against the null hypothesis, as there is less than a 5% probability the null is correct (and the results are random). Therefore, we reject the null hypothesis, and accept the alternative hypothesis.
+> The alternative hypothesis states that the independent variable did affect the dependent variable, and the results are significant in terms of supporting the theory being investigated (i.e. not due to chance).
+>
+>`r tufte::quote_footer('https://www.simplypsychology.org/p-value.html')`
 
 ***
 <!-- TODO: megnézni, hogy lehet tovább ezen finomítani, ugyanis nem abszolút értékes datasetnél gyenge/nem létező a kapcsolat -->
@@ -215,16 +231,36 @@ ggl_trends_abs_scatterplt
 
 Covariance:
 ```{r, tidy=TRUE}
-btc_ggl_cov <- cov(btc_usd_ggltrnds_combined$Trends_indicator,abs(btc_usd_ggltrnds_combined$xchange_rate_change), method = "pearson")
+btc_ggl_cov <- cov(btc_usd_ggltrnds_combined$Trends_indicator,btc_usd_ggltrnds_combined$xchange_rate_change, method = "pearson")
 
 btc_ggl_cov
 
 ```
 Correlation:
 ```{r, tidy=TRUE}
-btc_ggl_cor <- cor(btc_usd_ggltrnds_combined$Trends_indicator,abs(btc_usd_ggltrnds_combined$xchange_rate_change), method = "pearson")
+btc_ggl_cor <- cor(btc_usd_ggltrnds_combined$Trends_indicator,btc_usd_ggltrnds_combined$xchange_rate_change, method = "pearson")
 
 btc_ggl_cor
 ```
 There is a moderate uphill (positive) relationship.
+
+## Eight step: incorporating more feature into the dataset
+
+Chosen to improve model accuracy:
+
+* US Dollar Bitcoin price/day
+* Bitcoin transaction volume/day: The total estimated value in USD of transactions on the blockchain. This does not include coins returned as change.
+* US Dollar transaction volume/day: The US Dollar value of bitcoins transacted on the blockchain.
+* US Dollar exchange volume/day: The US Dollar trading volume of bitcoin on major bitcoin exchanges.
+* Unique, used addresses/day
+
+We need to combine all these to get a compact, usable dataframe.
+First things first: Reddit submissions data cleaning.
+
+```{r, tidy=TRUE}
+path <- "D:/Suli/Szakdolgozat1/data_to_be_cleaned/reddit_adat/bitcoin_sub"
+bitcoin_sub_df <- list.files(path, pattern = "*.rds", full.names = TRUE) %>%
+                  map_dfr(readRDS)
+```
+
 
