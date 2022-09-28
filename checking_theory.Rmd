@@ -11,16 +11,19 @@ Before we can start with our machine learning model we need to understand the re
 ### Loading libraries to be used
 ```{r, warning=FALSE,message=FALSE}
 library(tidyverse)
+library(tidytext)
+library(tm)
 library(writexl)
 library(plyr)
 library(lubridate)
+library(anytime)
 library(plotly)
 library(dplyr)
 library(corrplot)
 library(formatR)
 library(htmltools)
 library(ggpubr)
-
+library(textstem)
 ```
 
 ***
@@ -257,10 +260,89 @@ Chosen to improve model accuracy:
 We need to combine all these to get a compact, usable dataframe.
 First things first: Reddit submissions data cleaning.
 
+>Lemmatisation (or lemmatization) in linguistics, is the process of grouping together the different inflected forms of a word so they can be analysed as a single item.
+
+```{r, tidy = TRUE}
+lemmatize_words_in_string <- function(col){
+  for (i in 1:length(col)){
+        col[i] <-  col[i] %>%
+         strsplit(" ") %>%
+         unlist() %>%
+         lemmatize_words() %>%
+         paste(collapse=" ")
+  }
+  return(col)
+}
+```
+
 ```{r, tidy=TRUE}
 path <- "D:/Suli/Szakdolgozat1/data_to_be_cleaned/reddit_adat/bitcoin_sub"
 bitcoin_sub_df <- list.files(path, pattern = "*.rds", full.names = TRUE) %>%
                   map_dfr(readRDS)
+
+                
+clean_bitcoin_sub_df <- bitcoin_sub_df %>%
+                       filter(author != 'rBitcoinMod', author != 'crypto_bot', selftext != '[removed]' , 
+                              selftext != '[deleted]') %>%
+                       mutate(selftext = paste(title, selftext, sep = " ")) %>%
+                       select(-title) %>%
+                       mutate(selftext = tolower(selftext)) %>%
+                       mutate(selftext = lemmatize_words_in_string(selftext)) %>%
+                       mutate(selftext = gsub("[^\x01-\x7F]", "", selftext)) %>%
+                       mutate(selftext = gsub("btc|xbt", "bitcoin", selftext)) %>%
+                       mutate(selftext = gsub("cryptocurrency|cryptocurrencies", "crypto", selftext)) %>%
+                       mutate(selftext = gsub("https?:\\/\\/\\S+","",selftext)) %>%
+                       mutate(selftext = gsub("\\$|usd|dollars","dollar",selftext)) %>%
+                       mutate(selftext = gsub("[[:punct:]]* *(\\w+[&'-]\\w+)|[[:punct:]]+ *| {2,}", " \\1",
+                                              selftext)) %>%
+                       mutate(created_utc = anydate(created_utc))
 ```
+
+Looking at most frequent words used in the submissions:
+
+```{r, tidy = TRUE}
+stopwords <- data.frame(word = stopwords("eng"))
+
+misc_df_word_freq <- clean_bitcoin_sub_df %>%
+                  unnest_tokens(word,selftext) %>%
+                  anti_join(stopwords)
+```
+
+```{r, tidy = TRUE}
+
+frequent_words <- misc_df_word_freq %>%
+                  select(word) %>%
+                  dplyr::count(word) %>%
+                  arrange(desc(n)) %>%
+                  slice(-1,) %>%
+                  top_n(20)
+
+```
+
+```{r, tidy = TRUE}
+fig <-  plot_ly(
+          data = frequent_words,
+          x = ~word,
+          y = ~n,
+          type = "bar"
+        ) %>% 
+    layout(xaxis = list(categoryorder = "total descending"))
+fig
+```
+
+Choose words which could be price indicative: buy, get, price, good, like, make, money, crypto, wallet and group the occurences of these by date.
+
+```{r, tidy = TRUE}
+toMatch <- c("buy", "get", "price", "good", "like", "make", "money", "crypto", "wallet")
+word_matches <- filter(misc_df_word_freq, word %in% toMatch) %>%
+                select(created_utc, word) %>%
+                group_by(created_utc, word) %>% 
+                summarise(count = n()) %>% 
+                ungroup() %>% 
+                spread(word, count) %>%
+                mutate(across(where(is.numeric), ~ ifelse(is.na(.), 0, .)))
+```
+<!-- TODO: megnézni az egy napra jutó submissionok számát, ugyanis lehet egyik nap több, másik nap kevesebb submission érkezett-->
+
 
 
