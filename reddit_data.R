@@ -6,8 +6,8 @@ require(tidyverse)
 require(rjson)
 require(tibble)
 
-before_time <- 1546905600
-after_time <- 	1546300800
+before_time <- 1648231855
+after_time <- 	1648080000
 
 scraping_function <- function(b_time, a_time, until) {
   while (b_time <= until) {
@@ -17,7 +17,7 @@ scraping_function <- function(b_time, a_time, until) {
           df <- getPushshiftData(
             postType = "submission",
             size = 1000,
-            after = a_time,
+            after = a_time, 
             before = b_time,
             title = "bitcoin",
             subreddit = "Bitcoin",
@@ -51,4 +51,4 @@ scraping_function <- function(b_time, a_time, until) {
   }
 }
 
-scraping_function(before_time, after_time, 1648764000)
+scraping_function(before_time, after_time, 1649610655)

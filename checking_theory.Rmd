@@ -344,5 +344,50 @@ word_matches <- filter(misc_df_word_freq, word %in% toMatch) %>%
 ```
 <!-- TODO: megnézni az egy napra jutó submissionok számát, ugyanis lehet egyik nap több, másik nap kevesebb submission érkezett-->
 
+Plot of occurences over time:
+
+```{r, tidy = TRUE}
+fig <- plot_ly(data = word_matches, x = ~created_utc, y = ~buy, name = 'Buy', type= 'scatter', mode = 'lines', height = 500) %>%
+  layout(title = "Number of occurences of possible price indicative words",
+  paper_bgcolor='rgb(255, 255, 255)', plot_bgcolor='rgb(186, 186, 186)',
+  xaxis = list(title = 'Date', range = list("2022-03-16 00:00:00", "2022-03-30 23:59:59"), rangeslider = list(type = "date", visible = T),
+               list(dtickrange=list(NULL, 1000), value="%H:%M:%S.%L ms"),
+               list(dtickrange=list(1000, 60000), value="%H:%M:%S s"),
+               list(dtickrange=list(60000, 3600000), value="%H:%M m"),
+               list(dtickrange=list(3600000, 86400000), value="%H:%M h"),
+               list(dtickrange=list(86400000, 604800000), value="%e. %b d"),
+               list(dtickrange=list(604800000, "M1"), value="%e. %b w"),
+               list(dtickrange=list("M1", "M12"), value="%b '%y M"),
+               list(dtickrange=list("M12", NULL), value="%Y Y"),
+               rangeselector=list(
+                 buttons=list(
+                   list(count=1, label="1M", step="month", stepmode="backward"),
+                   list(count=6, label="6M", step="month", stepmode="backward"),
+                   list(count=1, label="1Y", step="year", stepmode="backward"),
+                   list(count=1, label="YTD", step="year", stepmode="todate"),
+                   list(step="ALL")
+                 )),
+               list(dtick = "M1", tickformat="%b\n%Y",
+                    ticklabelmode="period")),
+  yaxis = list(title = "Number of occurences",
+               gridcolor = 'rgb(255,255,255)',
+               showgrid = TRUE,
+               showline = FALSE,
+               showticklabels = TRUE,
+               tickcolor = 'rgb(140, 140, 140)',
+               ticks = 'outside',
+               zeroline = FALSE)) %>%
+         add_trace(y = ~crypto, name = 'Crypto', mode = 'lines') %>%
+       add_trace(y = ~get,name = 'Get', mode = 'lines') %>%
+       add_trace(y = ~good, name = 'Good', mode = 'lines') %>%
+       add_trace(y = ~like, name = 'Like', mode = 'liness') %>%
+       add_trace(y = ~make, name = 'Make', mode = 'lines') %>%
+       add_trace(y = ~money, name = 'Money', mode = 'lines') %>%
+       add_trace(y = ~price, name = 'Price', mode = 'lines') %>%
+       add_trace(y = ~wallet, name = 'Wallet', mode = 'lines')
+
+fig
+```
+
 
 
