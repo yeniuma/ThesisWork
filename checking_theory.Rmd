@@ -11,6 +11,7 @@ Before we can start with our machine learning model we need to understand the re
 ### Loading libraries to be used
 ```{r, warning=FALSE,message=FALSE}
 library(tidyverse)
+library(padr)
 library(tidytext)
 library(tm)
 library(writexl)
@@ -24,6 +25,8 @@ library(formatR)
 library(htmltools)
 library(ggpubr)
 library(textstem)
+library(vader)
+library(zoo)
 ```
 
 ***
@@ -95,6 +98,8 @@ btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xch
                      
 
 btc_sent_lineplot
+
+rm(btc_sent_lineplot)
 ```
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 plot(density(btc_exchange_rate_history$daily_avg_sent), type="n", main = "Distribution of average daily sentiment")
@@ -121,6 +126,8 @@ btc_sent_scatterplot <- plot_ly(data = btc_usd_tweets_combined, y =  ~daily_avg_
                         htmltools::div(align="center" )
 
 btc_sent_scatterplot
+
+rm(btc_sent_scatterplot)
 ```
 The plot shows that there is no distinguishable relationship between these variables, but I still wanted to do the covariance and correlation calculation to get the mathematical results.
 
@@ -187,7 +194,9 @@ btc_usd_ggltrnds_combined <- read.csv("D:/Suli/Szakdolgozat1/clean data/Bitcoin_
                                                               value)) %>%
                              select(-X) %>%
                              dplyr::rename(Trends_indicator = value)
+```
 
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 btc_ggltrnds_scatterplot <- plot_ly(data = btc_usd_ggltrnds_combined, y =  ~Trends_indicator, x = ~xchange_rate_change,
                             marker = list(size = 4,
                              color = 'rgba(255, 182, 193, .9)',
@@ -197,6 +206,8 @@ btc_ggltrnds_scatterplot <- plot_ly(data = btc_usd_ggltrnds_combined, y =  ~Tren
                             htmltools::div(align="center")
 
 btc_ggltrnds_scatterplot
+
+rm(btc_ggltrnds_scatterplot)
 ```
 
 Plotting the absolute values shows the linearity between Google Trends indicator and BTC exchange rate change:
@@ -213,6 +224,7 @@ ggl_trends_abs_scatterplt <- plot_ly(data = btc_usd_ggltrnds_combined ,y =  ~abs
                             htmltools::div(align="center" )
 ggl_trends_abs_scatterplt
 
+rm(ggl_trends_abs_scatterplt)
 ```
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 ggscatter(btc_usd_ggltrnds_combined, x = "xchange_rate_change", y = "Trends_indicator", 
@@ -234,16 +246,15 @@ ggscatter(btc_usd_ggltrnds_combined, x = "xchange_rate_change", y = "Trends_indi
 
 Covariance:
 ```{r, tidy=TRUE}
-btc_ggl_cov <- cov(btc_usd_ggltrnds_combined$Trends_indicator,btc_usd_ggltrnds_combined$xchange_rate_change, method = "pearson")
 
-btc_ggl_cov
+print(cov(btc_usd_ggltrnds_combined$Trends_indicator,btc_usd_ggltrnds_combined$xchange_rate_change, method = "pearson"))
 
 ```
 Correlation:
 ```{r, tidy=TRUE}
-btc_ggl_cor <- cor(btc_usd_ggltrnds_combined$Trends_indicator,btc_usd_ggltrnds_combined$xchange_rate_change, method = "pearson")
 
-btc_ggl_cor
+print(cor(btc_usd_ggltrnds_combined$Trends_indicator,btc_usd_ggltrnds_combined$xchange_rate_change, method = "pearson"))
+
 ```
 There is a moderate uphill (positive) relationship.
 
@@ -328,9 +339,11 @@ fig <-  plot_ly(
         ) %>% 
     layout(xaxis = list(categoryorder = "total descending"))
 fig
+
+rm(frequent_words)
 ```
 
-Choose words which could be price indicative: buy, get, price, good, like, make, money, crypto, wallet and group the occurences of these by date.
+Choose words which could be price indicative: buy, get, price, good, like, make, money, crypto, wallet and group the occurences of these by date. Interpolate missing values.
 
 ```{r, tidy = TRUE}
 toMatch <- c("buy", "get", "price", "good", "like", "make", "money", "crypto", "wallet")
@@ -340,9 +353,11 @@ word_matches <- filter(misc_df_word_freq, word %in% toMatch) %>%
                 summarise(count = n()) %>% 
                 ungroup() %>% 
                 spread(word, count) %>%
-                mutate(across(where(is.numeric), ~ ifelse(is.na(.), 0, .)))
+                mutate(across(where(is.numeric), ~ ifelse(is.na(.), 0, .))) %>%
+                pad() %>%
+                mutate_at(toMatch, na.approx) %>%
+                mutate_at(toMatch, round)
 ```
-<!-- TODO: megnézni az egy napra jutó submissionok számát, ugyanis lehet egyik nap több, másik nap kevesebb submission érkezett-->
 
 Plot of occurences over time:
 
@@ -378,6 +393,7 @@ fig <- plot_ly(data = word_matches, x = ~created_utc, y = ~buy, name = 'Buy', ty
                ticks = 'outside',
                zeroline = FALSE)) %>%
          add_trace(y = ~crypto, name = 'Crypto', mode = 'lines') %>%
+       add_trace(y = ~buy, name = 'Wallet', mode = 'lines') %>%
        add_trace(y = ~get,name = 'Get', mode = 'lines') %>%
        add_trace(y = ~good, name = 'Good', mode = 'lines') %>%
        add_trace(y = ~like, name = 'Like', mode = 'liness') %>%
@@ -387,7 +403,168 @@ fig <- plot_ly(data = word_matches, x = ~created_utc, y = ~buy, name = 'Buy', ty
        add_trace(y = ~wallet, name = 'Wallet', mode = 'lines')
 
 fig
+rm(fig)
+```
+
+Correlation between the chosen words and Bitcoin exchange:
+
+```{r, tidy = TRUE}
+print("crypto-exchange rate change:")
+print(cor(word_matches$crypto,btc_usd_tweets_combined$Close))
+
+print("make-exchange rate change:")
+print(cor(word_matches$make,btc_usd_tweets_combined$Close))
+
+print("buy-exchange rate change:")
+print(cor(word_matches$buy,btc_usd_tweets_combined$Close))
+
+print("get-exchange rate change:")
+print(cor(word_matches$get,btc_usd_tweets_combined$Close))
+
+print("good-exchange rate change:")
+print(cor(word_matches$good,btc_usd_tweets_combined$Close))
+
+print("like-exchange rate change:")
+print(cor(word_matches$like,btc_usd_tweets_combined$Close))
+
+print("money-exchange rate change:")
+print(cor(word_matches$money,btc_usd_tweets_combined$Close))
+
+print("make-exchange rate change:")
+print(cor(word_matches$make,btc_usd_tweets_combined$Close))
+
+print("price-exchange rate change:")
+print(cor(word_matches$buy,btc_usd_tweets_combined$Close))
+
+print("wallet-exchange rate change:")
+print(cor(word_matches$wallet,btc_usd_tweets_combined$Close))
+
+```
+
+Unfortunately no significant correlation has been found. Lastly, we should see if we find any correlation between Reddit sentiments and Bitcoin price change.
+
+```{r, tidy = TRUE}
+splitting_func <- function(string){
+  strsplit(string, "(?<=[?.!\"\n])\\s?(?=[a-z])", perl=T)
+}
+```
+
+```{r, tidy = TRUE}
+
+sent_bitcoin_sub_df <- bitcoin_sub_df %>%
+                       filter(author != 'rBitcoinMod', author != 'crypto_bot', selftext != '[removed]' , 
+                              selftext != '[deleted]') %>%
+                       mutate(selftext = paste(title, selftext, sep = ".")) %>%
+                       select(c(-num_comments,-title,-score,-subreddit,-id,-author)) %>%
+                       mutate(selftext = tolower(selftext)) %>%
+                       mutate(selftext = lemmatize_words_in_string(selftext)) %>%
+                       mutate(selftext = gsub("[^\x01-\x7F]", "", selftext)) %>%
+                       mutate(selftext = gsub("btc|xbt", "bitcoin", selftext)) %>%
+                       mutate(selftext = gsub("cryptocurrency|cryptocurrencies", "crypto", selftext)) %>%
+                       mutate(selftext = gsub("https?:\\/\\/\\S+","",selftext)) %>%
+                       mutate(selftext = gsub("\\$|usd|dollars","dollar",selftext)) %>%
+                       mutate(created_utc = anydate(created_utc)) %>%
+                       unnest_tokens(tbl = ., input = selftext, output = sentences, token = splitting_func) %>%
+                       mutate(sentences = gsub("[[:punct:]]* *(\\w+[&'-]\\w+)|[[:punct:]]+ *| {2,}", " \\1",
+                                              sentences))
+```
+
+```{r, tidy = TRUE, warning=FALSE}
+reddit_vader_df <- NULL
+
+for (i in 1:nrow(sent_bitcoin_sub_df)){
+outs <-  vader_df(sent_bitcoin_sub_df$sentences[i])
+reddit_vader_df <- rbind(reddit_vader_df,outs)
+}
+
+write_rds(reddit_vader_df,"D:/Suli/Szakdolgozat1/data_to_be_cleaned/reddit_adat/bitcoin_sub/reddit_vader_df.rds")
 ```
 
 
+```{r, tidy = TRUE}
+reddit_vader_df$positive <- 0
+reddit_vader_df$negative <- 0
+
+reddit_vader_df <- readRDS("D:/Suli/Szakdolgozat1/data_to_be_cleaned/reddit_adat/reddit_vader_df.rds") %>%
+                   cbind(sent_bitcoin_sub_df) %>%
+                   select(c(compound,pos,neu,neg,-sentences,created_utc)) %>%
+                   mutate(across(c(pos,neg,neu),~replace_na(.,0))) %>%
+                   mutate(positive = case_when(pos >= 0.2 ~ 1, pos < 0.2 ~ 0),
+                          negative = case_when(neg >= 0.2 ~ 1, neg < 0.2 ~ 0)) %>%
+                   select(created_utc,positive,negative) %>%
+                   group_by(created_utc) %>%
+                   summarise(total_positive = sum(positive), total_negative = sum(negative)) %>%
+                   pad() %>%
+                   mutate(across(c(total_positive,total_negative), na.approx)) %>%
+                   mutate(across(c(total_positive,total_negative), round))
+
+```
+
+```{r, tidy = TRUE}
+btc_usd_ggltrnds_combined <- btc_usd_ggltrnds_combined %>% 
+                             filter(row_number() <= n()-1) %>%
+                             cbind(reddit_vader_df) %>%
+                             select(-created_utc)
+```
+
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+plot(density(btc_usd_ggltrnds_combined$total_positive), type="n", main = "Distribution of total positives")
+polygon(density(btc_usd_ggltrnds_combined$total_positive), col="red", border="gray")
+```
+
+Correlation between Bitcoin price change and total positives/negatives:
+
+```{r, tidy = TRUE}
+
+print(cor(btc_usd_ggltrnds_combined$Close,btc_usd_ggltrnds_combined$total_positive))
+
+print(cor(btc_usd_ggltrnds_combined$Close,btc_usd_ggltrnds_combined$total_negative))
+
+```
+```{r, tidy = TRUE}
+
+misc_df <- sent_bitcoin_sub_df %>%
+            mutate(n = 1) %>%
+            select(-sentences) %>%
+            group_by(created_utc) %>%
+            summarise(number_of_posts = sum(n)) %>%
+            pad() %>%
+            mutate(number_of_posts= round(na.approx(number_of_posts))) %>%
+            cbind(btc_usd_ggltrnds_combined) %>%
+            select(-Date)
+                    
+```
+
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+plot(density(misc_df$number_of_posts), type="n", main = "Distribution of total positives")
+polygon(density(misc_df$number_of_posts), col="red", border="gray")
+```
+
+```{r,tidy = TRUE}
+print(cor(misc_df$Close,misc_df$number_of_posts))
+```
+Well, this didn't work out either. Last resort: tweet volumes?
+
+```{r, tidy = TRUE}
+tweets <- read_csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/n_of_tweets_#bitcoin.csv")
+```
+
+```{r, tidy = TRUE}
+formatted_tweets <- tweets %>%
+                    rename(date = V1) %>%
+                    rename(number_of_tweets = V2)
+```
+
+```{r, tidy = TRUE}
+final_df <- misc_df %>%
+            inner_join(formatted_tweets, by = c("created_utc" = "date")) %>%
+            select(c(-total_positive,-total_negative,-number_of_posts)) %>%
+            mutate(number_of_tweets= round(na.approx(number_of_tweets)))
+```
+
+```{r, tidy = TRUE}
+
+print(cor(final_df$Close, final_df$number_of_tweets, method = "pearson"))
+
+```
 
