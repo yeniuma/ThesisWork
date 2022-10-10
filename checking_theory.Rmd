@@ -4,12 +4,18 @@ output:
   html_document:
 #    number_sections: true
 ---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(cache = TRUE)
+```
+
 # Exchange rate and social media: is there a connection?
 Before we can start with our machine learning model we need to understand the relationship between the two variables, therefore we should calculate covariance. This measures the direction of a relationship between the two variables.
 
 ***
 ### Loading libraries to be used
 ```{r, warning=FALSE,message=FALSE}
+
 library(tidyverse)
 library(padr)
 library(tidytext)
@@ -27,11 +33,13 @@ library(ggpubr)
 library(textstem)
 library(vader)
 library(zoo)
+
 ```
 
 ***
 ## First step: creating a dataframe from the csv
 ```{r, tidy=TRUE}
+
 btc_exchange_rate_history <- read.csv("D:/Suli/Szakdolgozat1/development_n_stuff/aggregated_data.csv") %>%
                              select(-X) %>%
                              mutate(created_at = as_date(created_at))
@@ -52,6 +60,7 @@ btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/clean data/Bitcoin_ex
 ***
 ## Second step: plotting exchange rate change and average sentiment for further insights, taking a look at distribution
 ```{r, tidy=TRUE, warning=FALSE, fig.width=10, fig.height=8, fig.align='center'}
+
 btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xchange_rate_change, name ="BTC change", type =
                                'scatter', 
                              mode = 'lines', color = 'red') %>%
@@ -99,16 +108,19 @@ btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xch
 
 btc_sent_lineplot
 
-rm(btc_sent_lineplot)
 ```
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+
 plot(density(btc_exchange_rate_history$daily_avg_sent), type="n", main = "Distribution of average daily sentiment")
 polygon(density(btc_exchange_rate_history$daily_avg_sent), col="red", border="gray")
+
 ```
 
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+
 plot(density(btc_usd_tweets_combined$xchange_rate_change), type="n", main = "Distribution of Bitcoin exchange rate change")
 polygon(density(btc_usd_tweets_combined$xchange_rate_change), col="red", border="gray")
+
 ```
 
 These seem like pretty standard normal distributions, so we can use Pearson Correlation Coefficient calculation later on.
@@ -117,6 +129,7 @@ These seem like pretty standard normal distributions, so we can use Pearson Corr
 ## Third step: plotting the data on a scatterplot
 
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+
 btc_sent_scatterplot <- plot_ly(data = btc_usd_tweets_combined, y =  ~daily_avg_sent, x = ~xchange_rate_change,
                             marker = list(size = 4,
                              color = 'rgba(255, 182, 193, .9)',
@@ -127,7 +140,6 @@ btc_sent_scatterplot <- plot_ly(data = btc_usd_tweets_combined, y =  ~daily_avg_
 
 btc_sent_scatterplot
 
-rm(btc_sent_scatterplot)
 ```
 The plot shows that there is no distinguishable relationship between these variables, but I still wanted to do the covariance and correlation calculation to get the mathematical results.
 
@@ -135,6 +147,7 @@ The plot shows that there is no distinguishable relationship between these varia
 ## Fourth step: calculate covariance and correlation of Twitter sentiments and BTC exchange rate
 
 ```{r, tidy=TRUE}
+
 btc_cov <- cov(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$xchange_rate_change, method = "pearson")
 
 btc_cov
@@ -145,9 +158,11 @@ Correlation helps us analyze the effect of changes made in one variable over the
 Now that we know this, we should calculate the strength of the relationship between two, numerically measured, continuous variables.
 
 ```{r, tidy=TRUE}
+
 btc_cor <- cor(btc_usd_tweets_combined$daily_avg_sent,btc_usd_tweets_combined$xchange_rate_change, method = "pearson")
 
 btc_cor
+
 ```
 > One of the most common ways to quantify a relationship between two variables is to use the Pearson correlation coefficient, which is a measure of the linear association between two variables.
 >
@@ -172,14 +187,18 @@ Because of the limitations of standard Google Trends data I had to use the Trend
 > Construct a robust and consistent daily Time Series from Google Trends data. Daily, weekly and monthly Data is downloaded and consistently aggregated, using the Chow-Lin methodology.
 
 ```{r}
+
 btc_ggl_trends <- read.csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/btc_google_trends.csv")
 
 head(btc_ggl_trends)
+
 ```
 Checking distribution:
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+
 plot(density(btc_ggl_trends$value), type="n", main = "Distribution of Google Trends data")
 polygon(density(btc_ggl_trends$value), col="red", border="gray")
+
 ```
 
 ***
@@ -207,7 +226,6 @@ btc_ggltrnds_scatterplot <- plot_ly(data = btc_usd_ggltrnds_combined, y =  ~Tren
 
 btc_ggltrnds_scatterplot
 
-rm(btc_ggltrnds_scatterplot)
 ```
 
 Plotting the absolute values shows the linearity between Google Trends indicator and BTC exchange rate change:
@@ -224,7 +242,6 @@ ggl_trends_abs_scatterplt <- plot_ly(data = btc_usd_ggltrnds_combined ,y =  ~abs
                             htmltools::div(align="center" )
 ggl_trends_abs_scatterplt
 
-rm(ggl_trends_abs_scatterplt)
 ```
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 ggscatter(btc_usd_ggltrnds_combined, x = "xchange_rate_change", y = "Trends_indicator", 
@@ -340,7 +357,6 @@ fig <-  plot_ly(
     layout(xaxis = list(categoryorder = "total descending"))
 fig
 
-rm(frequent_words)
 ```
 
 Choose words which could be price indicative: buy, get, price, good, like, make, money, crypto, wallet and group the occurences of these by date. Interpolate missing values.
@@ -408,40 +424,40 @@ rm(fig)
 
 Correlation between the chosen words and Bitcoin exchange:
 
-```{r, tidy = TRUE}
-print("crypto-exchange rate change:")
+```{r, tidy = TRUE, echo=FALSE}
+print("crypto-closing price:")
 print(cor(word_matches$crypto,btc_usd_tweets_combined$Close))
 
-print("make-exchange rate change:")
+print("make-closing price:")
 print(cor(word_matches$make,btc_usd_tweets_combined$Close))
 
-print("buy-exchange rate change:")
+print("buy-closing price:")
 print(cor(word_matches$buy,btc_usd_tweets_combined$Close))
 
-print("get-exchange rate change:")
+print("get-closing price:")
 print(cor(word_matches$get,btc_usd_tweets_combined$Close))
 
-print("good-exchange rate change:")
+print("good-closing price:")
 print(cor(word_matches$good,btc_usd_tweets_combined$Close))
 
-print("like-exchange rate change:")
+print("like-closing price:")
 print(cor(word_matches$like,btc_usd_tweets_combined$Close))
 
-print("money-exchange rate change:")
+print("money-closing price:")
 print(cor(word_matches$money,btc_usd_tweets_combined$Close))
 
-print("make-exchange rate change:")
+print("make-closing price:")
 print(cor(word_matches$make,btc_usd_tweets_combined$Close))
 
-print("price-exchange rate change:")
+print("price-closing price:")
 print(cor(word_matches$buy,btc_usd_tweets_combined$Close))
 
-print("wallet-exchange rate change:")
+print("wallet-closing price:")
 print(cor(word_matches$wallet,btc_usd_tweets_combined$Close))
 
 ```
 
-Unfortunately no significant correlation has been found. Lastly, we should see if we find any correlation between Reddit sentiments and Bitcoin price change.
+Only moderate correlation has been found. Lastly, we should see if we find any correlation between Reddit sentiments and Bitcoin price change.
 
 ```{r, tidy = TRUE}
 splitting_func <- function(string){
@@ -469,21 +485,8 @@ sent_bitcoin_sub_df <- bitcoin_sub_df %>%
                                               sentences))
 ```
 
-```{r, tidy = TRUE, warning=FALSE}
-reddit_vader_df <- NULL
-
-for (i in 1:nrow(sent_bitcoin_sub_df)){
-outs <-  vader_df(sent_bitcoin_sub_df$sentences[i])
-reddit_vader_df <- rbind(reddit_vader_df,outs)
-}
-
-write_rds(reddit_vader_df,"D:/Suli/Szakdolgozat1/data_to_be_cleaned/reddit_adat/bitcoin_sub/reddit_vader_df.rds")
-```
-
 
 ```{r, tidy = TRUE}
-reddit_vader_df$positive <- 0
-reddit_vader_df$negative <- 0
 
 reddit_vader_df <- readRDS("D:/Suli/Szakdolgozat1/data_to_be_cleaned/reddit_adat/reddit_vader_df.rds") %>%
                    cbind(sent_bitcoin_sub_df) %>%
@@ -543,28 +546,74 @@ polygon(density(misc_df$number_of_posts), col="red", border="gray")
 ```{r,tidy = TRUE}
 print(cor(misc_df$Close,misc_df$number_of_posts))
 ```
-Well, this didn't work out either. Last resort: tweet volumes?
+Well, this shows a moderate amount of correlation between the number of Reddit posts and Bitcoin closing price.
+Now with Tweet amount:
 
 ```{r, tidy = TRUE}
-tweets <- read_csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/n_of_tweets_#bitcoin.csv")
+
+tweets <- read_csv("D:/Suli/Szakdolgozat1/data_to_be_cleaned/twitter_adat/n_of_tweets_#bitcoin.csv")
+
 ```
 
 ```{r, tidy = TRUE}
+
 formatted_tweets <- tweets %>%
                     rename(date = V1) %>%
                     rename(number_of_tweets = V2)
+
 ```
 
 ```{r, tidy = TRUE}
-final_df <- misc_df %>%
+
+df_with_nr_of_tweets <- misc_df %>%
             inner_join(formatted_tweets, by = c("created_utc" = "date")) %>%
-            select(c(-total_positive,-total_negative,-number_of_posts)) %>%
+            select(c(-total_positive,-total_negative)) %>%
             mutate(number_of_tweets= round(na.approx(number_of_tweets)))
+
 ```
 
 ```{r, tidy = TRUE}
 
-print(cor(final_df$Close, final_df$number_of_tweets, method = "pearson"))
+print(cor(df_with_nr_of_tweets$Close, df_with_nr_of_tweets$number_of_tweets, method = "pearson"))
+
+```
+Incorporating all features into the dataset, then making a correlation matrix to check for multicollinearity:
+
+```{r, tidy = TRUE}
+
+temp <-do.call(cbind,
+            lapply(list.files(path = "D:/Suli/Szakdolgozat1/data_to_be_cleaned/", pattern = "*.xlsx", full.names = TRUE)
+                 , readxl::read_xlsx)) %>%
+       select(c(Nr_of_Bitcoin_transactions, Nr_of_unique_Bitcoin_addresses, Bitcoin_transaction_volume
+                , Wikipedia_searches_Bitcoin))
 
 ```
 
+```{r, tidy = TRUE}
+
+final_df <- df_with_nr_of_tweets %>%
+            cbind(temp) %>%
+            select(c(-Open,-Low,-High,-Adj.Close,-Volume)) %>%
+            dplyr::rename(Price_change = xchange_rate_change, Date = created_utc, Nr_of_tweets = number_of_tweets,
+                          Nr_of_Reddit_posts = number_of_posts, Closing_price = Close,
+                          Google_Trends_indicator = Trends_indicator)
+            
+```
+
+```{r, tidy = TRUE}
+
+cor(final_df[,2:10])
+
+```
+The correlation matrix doesn't show anything outstanding, we can assess feature importance in the ML notebook.
+
+Exporting final dataframe:
+
+```{r, tidy = TRUE}
+
+write_xlsx(final_df, "D:/Suli/Szakdolgozat1/clean data/data_for_training.xlsx")
+
+```
+
+
+With all of these in order we can start tweaking the Prophet model.
