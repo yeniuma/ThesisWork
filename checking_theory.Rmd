@@ -33,6 +33,7 @@ library(ggpubr)
 library(textstem)
 library(vader)
 library(zoo)
+library(ggplot2)
 
 ```
 
@@ -48,12 +49,10 @@ btc_exchange_rate_history <- read.csv("D:/Suli/Szakdolgozat1/development_n_stuff
 
 btc_usd_tweets_combined <- read.csv("D:/Suli/Szakdolgozat1/clean data/Bitcoin_exchage_rates.csv") %>%
                            mutate(Date = as_date(Date)) %>%
-                           mutate(year = year(Date), month = month(Date), day = day(Date)) %>%
-                           mutate(Date = make_date(year,month,day)) %>% 
                            mutate(xchange_rate_change = Close - Open) %>%
                            filter(Date >= "2019-01-01" & Date <= "2022-03-30") %>%
-                           inner_join(btc_exchange_rate_history, by = c("Date" = "created_at")) %>% 
-                           select(c(-year,-month,-day))
+                           inner_join(btc_exchange_rate_history, by = c("Date" = "created_at"))
+
 
 ```
 
@@ -109,10 +108,21 @@ btc_sent_lineplot <- plot_ly(data = btc_usd_tweets_combined, x = ~Date, y = ~xch
 btc_sent_lineplot
 
 ```
-```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
+btc_exchange_rate_history$daily_avg_sent <- scale(btc_exchange_rate_history$daily_avg_sent)
+```
+
+
+```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 plot(density(btc_exchange_rate_history$daily_avg_sent), type="n", main = "Distribution of average daily sentiment")
 polygon(density(btc_exchange_rate_history$daily_avg_sent), col="red", border="gray")
+
+```
+
+```{r, tidy = TRUE}
+
+shapiro.test(btc_exchange_rate_history$daily_avg_sent)
 
 ```
 
@@ -120,6 +130,12 @@ polygon(density(btc_exchange_rate_history$daily_avg_sent), col="red", border="gr
 
 plot(density(btc_usd_tweets_combined$xchange_rate_change), type="n", main = "Distribution of Bitcoin exchange rate change")
 polygon(density(btc_usd_tweets_combined$xchange_rate_change), col="red", border="gray")
+
+```
+
+```{r}
+
+shapiro.test(btc_usd_tweets_combined$xchange_rate_change)
 
 ```
 
@@ -485,6 +501,16 @@ sent_bitcoin_sub_df <- bitcoin_sub_df %>%
                                               sentences))
 ```
 
+```{r, tidy = TRUE}
+reddit_vader_df <- NULL
+
+for (i in 1:nrow(sent_bitcoin_sub_df)){
+  outs <-  vader_df(sent_bitcoin_sub_df$sentences[i])
+  reddit_vader_df <- rbind(reddit_vader_df,outs)
+}
+
+write_rds(reddit_vader_df,"D:/Suli/Szakdolgozat1/data_to_be_cleaned/reddit_adat/bitcoin_sub/reddit_vader_df.rds")
+```
 
 ```{r, tidy = TRUE}
 
@@ -513,6 +539,16 @@ btc_usd_ggltrnds_combined <- btc_usd_ggltrnds_combined %>%
 ```{r, tidy=TRUE, warning=FALSE, message=FALSE, fig.align='center'}
 plot(density(btc_usd_ggltrnds_combined$total_positive), type="n", main = "Distribution of total positives")
 polygon(density(btc_usd_ggltrnds_combined$total_positive), col="red", border="gray")
+```
+
+```{r, tidy = TRUE}
+
+fig <- plot_ly(btc_usd_ggltrnds_combined, x = ~Date, y = ~total_negative, type = 'bar', name = 'Negatives/day') %>%
+  add_trace(y = ~total_positive, name = 'Positives/day') %>% 
+  layout(yaxis = list(title = 'Count'), barmode = 'group') %>%
+  add_trace(y = ~Close*(1/1000), type = 'scatter', mode = 'lines', name = 'Bitcoin closing price')
+
+fig
 ```
 
 Correlation between Bitcoin price change and total positives/negatives:
@@ -599,6 +635,7 @@ final_df <- df_with_nr_of_tweets %>%
                           Google_Trends_indicator = Trends_indicator)
             
 ```
+
 
 ```{r, tidy = TRUE}
 

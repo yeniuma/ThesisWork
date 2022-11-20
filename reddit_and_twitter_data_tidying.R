@@ -69,6 +69,8 @@ btc_data_aggr <- clean_btc_data %>%
   dplyr::group_by(created_at) %>%
   dplyr::summarize(daily_avg_sent = mean(ave_sentiment))
 
+write.csv(btc_data_aggr,"aggregated_data.csv")
+
 btc_sent_plot <- plot_ly(x = btc_data_aggr$created_at, y = btc_data_aggr$daily_avg_sent, type= 'scatter', mode = 'lines', line = list(color = 'rgb(167, 112, 230)')
                  , height = 500) %>%
                  layout(title = "Average sentiment on Bitcoin from 2019 to 2022",

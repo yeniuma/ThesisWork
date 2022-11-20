@@ -4,8 +4,134 @@ output:
   html_document:
 #    number_sections: true
 ---
-
-
 ```{r, warning=FALSE,message=FALSE}
+library(prophet)
+library(tidyverse)
+library(caret)
+library(caTools)
+library(anytime)
+library(gdata)
+library(ehaGoF)
+library(readr)
+```
+
+Load cleaned data:
+
+```{r, tidy = TRUE}
+final_df <- readxl::read_xlsx("D:/Suli/Szakdolgozat1/clean data/data_for_training.xlsx")
+```
+
+Feature selection:
+
+```{r}
+set.seed(123)
+#control <- rfeControl(functions=rfFuncs, method="cv", number=10)
+#results <- rfe(final_df[,4:10], final_df[,3], sizes=c(4:10), rfeControl=control)
+```
+
+Function to loop through regressor values and predict their future values for use:
+
+```{r, tidy = TRUE}
+predict_regressors <- function(columns, source_dataframe){
+  future_regressors_df <- data.frame(Date = seq(as.Date("2019/1/1"), as.Date("2022/05/29"), by = "days"))
+  f_model <- 0
+  for (col in columns){
+    temp_df <- cbind(source_dataframe$Date,source_dataframe[,col])
+    names(temp_df)[names(temp_df) == "source_dataframe$Date"] <- "ds"
+    names(temp_df)[names(temp_df) == col] <- "y"
+    f_model <- prophet(temp_df, weekly.seasonality = FALSE, changepoint.range = 1, changepoint.prior.scale = 0.6)
+    f_future <- make_future_dataframe(f_model, periods = 60)
+    temp_df <- predict(f_model,f_future)
+    future_regressors_df <- cbind(future_regressors_df,temp_df$yhat)
+    names(future_regressors_df)[names(future_regressors_df) == "temp_df$yhat"] <- col
+  }
+  return(future_regressors_df)
+}
+```
+
+
+```{r}
+test_df <- predict_regressors(c('Nr_of_Reddit_posts','Google_Trends_indicator','Price_change','Nr_of_tweets','Nr_of_Bitcoin_transactions','Nr_of_unique_Bitcoin_addresses','Bitcoin_transaction_volume','Wikipedia_searches_Bitcoin'), final_df)
+```
+
+Rename date to ds and column to be predicted to y:
+
+```{r, tidy = TRUE}
+ml_df <- final_df %>%
+         select("Closing_price") %>%
+         rename("y" = "Closing_price") %>%
+         cbindX(test_df) %>%
+         rename("ds" = "Date")
+```
+
+Split to train and test dataset:
+
+```{r, tidy = TRUE}
+sample <- sample.split(ml_df$ds, SplitRatio= 0.7)
+train <- subset(ml_df, sample == TRUE)
+test <- subset(ml_df, sample == FALSE)
+```
+
+Add all variables:
+
+```{r, tidy = TRUE}
+model <- prophet(daily.seasonality = TRUE)
+model <- add_regressor(model,'Nr_of_Reddit_posts', standardize = FALSE)
+model <- add_regressor(model,'Google_Trends_indicator', standardize = FALSE)
+model <- add_regressor(model,'Price_change', standardize = FALSE)
+model <- add_regressor(model,'Nr_of_tweets', standardize = FALSE)
+model <- add_regressor(model,'Nr_of_Bitcoin_transactions', standardize = FALSE)
+model <- add_regressor(model,'Nr_of_unique_Bitcoin_addresses', standardize = FALSE)
+model <- add_regressor(model,'Bitcoin_transaction_volume', standardize = FALSE)
+model <- add_regressor(model,'Wikipedia_searches_Bitcoin', standardize = FALSE)
 
 ```
+
+```{r, tidy = TRUE}
+model <- fit.prophet(model, ml_df)
+```
+
+```{r, tidy = TRUE}
+forecast <- predict(model,ml_df)
+
+tail(forecast[c('ds','yhat', 'yhat_lower','yhat_upper')])
+```
+
+```{r, tidy = TRUE}
+plot(model, forecast)
+```
+
+Cross-validation:
+
+```{r, tidy = TRUE}
+df_cv <- cross_validation(model, initial = 821, horizon = 60, period = 30, units = "days")
+
+head(df_cv)
+```
+```{r, tidy = TRUE}
+df_p <- performance_metrics(df_cv)
+
+head(df_p)
+```
+
+Relative RMSE of 60 days of prediction:
+
+There are two ways to get relative RMSE (or normalized RMSE):
+
+- Divide RMSE by standard deviation of observed values.
+- Divide RMSE by difference between max and min of observed values.
+
+```{r,tidy = TRUE}
+write_rds(forecast,"forecast.Rds")
+write_rds(model, "model.Rds")
+write_rds(ml_df, "training_df.Rds")
+```
+
+```{r, tidy = TRUE}
+rel_RMSE <- sqrt( mean( (forecast$yhat-final_df$Closing_price)^2) ) / (max(final_df$Closing_price) - min(final_df$Closing_price) )
+print(rel_RMSE)
+
+rel_RMSE_2 <- ehaGoF::gofRRMSE(final_df$Closing_price,forecast$yhat)
+print(rel_RMSE_2)
+```
+
