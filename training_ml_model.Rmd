@@ -114,18 +114,18 @@ df_p <- performance_metrics(df_cv)
 head(df_p)
 ```
 
+```{r,tidy = TRUE}
+write_rds(forecast,"forecast.Rds")
+write_rds(model, "model.Rds")
+write_rds(ml_df, "training_df.Rds")
+```
+
 Relative RMSE of 60 days of prediction:
 
 There are two ways to get relative RMSE (or normalized RMSE):
 
 - Divide RMSE by standard deviation of observed values.
 - Divide RMSE by difference between max and min of observed values.
-
-```{r,tidy = TRUE}
-write_rds(forecast,"forecast.Rds")
-write_rds(model, "model.Rds")
-write_rds(ml_df, "training_df.Rds")
-```
 
 ```{r, tidy = TRUE}
 rel_RMSE <- sqrt( mean( (forecast$yhat-final_df$Closing_price)^2) ) / (max(final_df$Closing_price) - min(final_df$Closing_price) )

@@ -1,58 +1,71 @@
 set.seed(123)
+
 library(shiny)
 library(plotly)
 library(readr)
 library(dplyr)
 library(slider)
 library(DT)
-forecast <- read_rds("D:/Suli/Szakdolgozat1/clean data/forecast.Rds")
-ml_df <- read_rds("D:/Suli/Szakdolgozat1/clean data/training_df.Rds")
-output_df <- select(forecast,c(ds,yhat_lower,yhat,yhat_upper))
+library(knitr)
+library(markdown)
 
-ui <- fluidPage(
-  
-  titlePanel("Bitcoin exchange rate change forecast with Prophet"),
-  
-  sidebarLayout(
-    
-    sidebarPanel(
-      
-      dateRangeInput(
-        inputId = 'inputDate',
-        label = 'Choose the date range to display:',
-        min = '2019-01-01',
-        max = '2022-05-29',
-        start = '2019-01-01',
-        end = '2019-05-01',
-        language = 'hu'
-      ),
-      selectInput(
-        inputId = 'inputCoinType',
-        label = 'Select the cryptocurrency:',
-        choices = 'Bitcoin'
-      )
-      
-    ),
-    
-    mainPanel(
-      tabsetPanel(
-        tabPanel("Plot",plotlyOutput("bitcoin_forecast")),
-        tabPanel("Dataset",DT::dataTableOutput("table"))      
+forecast <- read_rds("forecast.Rds")
+ml_df <- read_rds("training_df.Rds")
+output_df <- select(forecast,c(ds,yhat_lower,yhat,yhat_upper))
+markdown_file <- "checking_theory.Rmd"
+
+
+ui <- navbarPage("Thesis",
+        tabPanel("Plot and dataset",
+                 titlePanel("Bitcoin exchange rate change forecast with Prophet"),
+                 
+                 sidebarLayout(
+                   
+                   sidebarPanel(
+                     
+                     dateRangeInput(
+                       inputId = 'inputDate',
+                       label = 'Choose the date range to display:',
+                       min = '2019-01-01',
+                       max = '2022-05-29',
+                       start = '2019-01-01',
+                       end = '2019-05-01',
+                       language = 'hu'
+                     ),
+                     selectInput(
+                       inputId = 'inputCoinType',
+                       label = 'Select the cryptocurrency:',
+                       choices = 'Bitcoin'
+                     )
+                     
+                   ),
+                   
+                   mainPanel(
+                     tabsetPanel(
+                       tabPanel("Plot",plotlyOutput("bitcoin_forecast")),
+                       tabPanel("Dataset",DT::dataTableOutput("table"))
+                     ),
+                   ),
+                 )
+               ),
+        
+        tabPanel(
+          "Checking theory, further data cleaning", 
+          includeMarkdown(markdown_file)
         )
-    )
-  )
+  
 )
 
 server <- function(input, output) {
-  
+
   output$table <- DT::renderDataTable({
     datatable(output_df)
-    }
-    )
+  })
   
   output$bitcoin_forecast <- renderPlotly({
     startDate <- input$inputDate[1]
     endDate <- input$inputDate[2]
+    
     
     rangeMax <- forecast[as.Date(forecast$ds) >= startDate & as.Date(forecast$ds) <= endDate,]$yhat_upper %>%
       max()
@@ -75,8 +88,6 @@ server <- function(input, output) {
            paper_bgcolor='rgb(255, 255, 255)', plot_bgcolor='rgb(255, 255, 255)',
            xaxis = list(type = 'date', title = 'Date', range = list(startDate, endDate), tickformat = "%d %B<br>%Y"),
            yaxis = list(range = list(0, rangeMax), title = 'BTC/USD'))
-      
-    
   })
 }
 

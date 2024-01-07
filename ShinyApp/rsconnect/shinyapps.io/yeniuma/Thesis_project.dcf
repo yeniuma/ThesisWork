@@ -1,0 +1,14 @@
+name: Thesis_project
+title: Thesis_project
+username:
+account: yeniuma
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 7804155
+bundleId: 6586858
+url: https://yeniuma.shinyapps.io/Thesis_project/
+when: 1670091778.14124
+lastSyncTime: 1670091778.14124
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .RData|figure/unnamed-chunk-13-1.png|figure/unnamed-chunk-17-1.png|figure/unnamed-chunk-5-1.png|figure/unnamed-chunk-7-1.png|cache
